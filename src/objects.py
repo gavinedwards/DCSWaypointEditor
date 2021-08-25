@@ -3,9 +3,13 @@ from typing import Any
 from LatLon23 import LatLon, Longitude, Latitude
 import json
 import urllib.request
+import csv
+import numpy as np
 from os import walk, path
 from src.logger import get_logger
-
+from datetime import datetime
+import random
+import string
 from src.models import ProfileModel, WaypointModel, SequenceModel, IntegrityError, db
 
 
@@ -164,7 +168,7 @@ class MSN(Waypoint):
 
 
 class Profile:
-    def __init__(self, profilename, waypoints=None, aircraft="hornet"):
+    def __init__(self, profilename, waypoints=None, aircraft="harrier"):
         self.profilename = profilename
         self.aircraft = aircraft
 
@@ -276,6 +280,56 @@ class Profile:
         return readable_string
 
     @staticmethod
+    def from_NS430(filename):
+
+        # profile_data = json.loads(profile_string)
+        try:
+            print("DEBUG: File contents below.\n" + filename)
+            print("DEBUG: Parsing as a CSV with specific delimeter.\n")
+
+            with open(filename, newline='') as datfile:
+                next(datfile)
+                data = csv.reader(datfile, delimiter=';')
+
+                # Create WP list
+                wpl = []
+                i = 0
+                for row in data:
+                    # Dictionary for each WP
+                    wpe = {}
+                    # Extract WP data from each list item
+                    lat = row[1]
+                    long = row[2]
+                    wp_name = row[3]
+                    # Set key value pairs within dictionary
+                    wpe["number"] = i+1
+                    wpe["elevation"] = 0
+                    wpe["name"] = wp_name
+                    wpe["wp_type"] = "WP"
+                    wpe["latitude"] = lat
+                    wpe["longitude"] = long
+                    # Append the WP dictionary to the WP list
+                    wpl.append(wpe)
+
+                    i+=1
+
+                # Dictionary for the top level key value pairs that we will export as json
+                wp_json = {}
+                # Creating the 3 key value pairs at the top level and appending the WP list
+                wp_json["waypoints"] = wpl
+                wp_json["name"] = "cf2wpe-{0}-{1}".format(datetime.today().strftime('%Y%m%d'), ''.join(random.choice(string.ascii_lowercase) for i in range(4)))
+                wp_json["aircraft"] = "harrier"
+
+                # Serializing json  
+                with open(wp_json["name"] + ".json", "w") as outfile:
+                    json.dump(wp_json, outfile)
+            return outfile
+
+        except Exception as e:
+            logger.error(e)
+            raise ValueError("Failed to convert NS430 data to json format")
+
+    @staticmethod
     def from_string(profile_string):
         profile_data = json.loads(profile_string)
         try:
@@ -288,7 +342,7 @@ class Profile:
             if profile.profilename:
                 profile.save()
             return profile
-
+            
         except Exception as e:
             logger.error(e)
             raise ValueError("Failed to load profile from data")

@@ -22,6 +22,33 @@ import numpy
 import re
 import datetime
 
+PyGUI.LOOK_AND_FEEL_TABLE['Hermes'] = {
+    'BACKGROUND': '#5A5F6F',
+    'TEXT': '#FFFFFF',
+    'INPUT': '#ffffff',
+    'TEXT_INPUT': '#000033',
+    'SCROLL': '# FFFFFF',
+    'BUTTON': ('#ffffff', '#000033'),
+    'PROGRESS': ('#CC0033', '#000033'),
+    'BORDER': 1,
+    'SLIDER_DEPTH': 0, 
+    'PROGRESS_DEPTH': 0,
+}
+
+PyGUI.theme('Hermes')
+#PyGUI.theme_background_color('#5A5F6F')
+#PyGUI.theme_input_background_color('#ffffff')
+#PyGUI.theme_element_background_color('#5A5F6F')
+#PyGUI.theme_element_text_color('#FFFFFF')
+#PyGUI.theme_slider_color('#FFFFFF')
+#PyGUI.theme_text_color('#FFFFFF')
+#PyGUI.theme_button_color('#000033')
+#PyGUI.theme_input_text_color('#000033')
+#PyGUI.theme_progress_bar_color('#CC0033')
+#PyGUI.theme_slider_border_width('0')
+#PyGUI.theme_progress_bar_border_width('0')
+#PyGUI.theme_border_width('0')
+
 def json_zip(j):
     j = base64.b64encode(
         zlib.compress(
@@ -198,8 +225,7 @@ class GUI:
 
         latitude_col3 = [
             [PyGUI.Text("Seconds")],
-            [PyGUI.InputText(size=(10, 1), key="latSec",
-                             pad=(5, (3, 10)), enable_events=True)],
+            [PyGUI.InputText(size=(10, 1), key="latSec", enable_events=True)],
         ]
 
         longitude_col1 = [
@@ -214,8 +240,7 @@ class GUI:
 
         longitude_col3 = [
             [PyGUI.Text("Seconds")],
-            [PyGUI.InputText(size=(10, 1), key="lonSec",
-                             pad=(5, (3, 10)), enable_events=True)],
+            [PyGUI.InputText(size=(10, 1), key="lonSec", enable_events=True)],
         ]
 
         frameelevationlayout = [
@@ -276,7 +301,7 @@ class GUI:
         framelatitude = PyGUI.Frame("Latitude", [[PyGUI.Column(latitude_col1), PyGUI.Column(latitude_col2),
                                                   PyGUI.Column(latitude_col3)]])
         frameelevation = PyGUI.Frame(
-            "Elevation", frameelevationlayout, pad=(5, (3, 10)))
+            "Elevation", frameelevationlayout)
         frameactype = PyGUI.Frame("Aircraft Type", frameactypelayout)
 
         framepositionlayout = [
@@ -286,8 +311,7 @@ class GUI:
              PyGUI.Column(
                  [
                      [PyGUI.Frame("MGRS", mgrslayout)],
-                     [PyGUI.Button("Capture from DCS F10 map", disabled=self.capture_button_disabled, key="capture",
-                                   pad=(1, (18, 3)))],
+                     [PyGUI.Button("Capture from DCS F10 map", disabled=self.capture_button_disabled, key="capture")],
 
                      [PyGUI.Text(self.capture_status, key="capture_status",
                                  auto_size_text=False, size=(20, 1))],
@@ -313,7 +337,7 @@ class GUI:
             # [PyGUI.Button("Move up", size=(12, 1)),
             # PyGUI.Button("Move down", size=(12, 1))],
             [PyGUI.Button("Save profile", size=(12, 1)),
-             PyGUI.Button("Delete profile", size=(12, 1))],
+             PyGUI.Button("Delete profile", button_color=('#FFFFFF', '#CC0033'), size=(12, 1))],
             [PyGUI.Text(f"Version: {self.software_version}")]
         ]
 
@@ -331,7 +355,7 @@ class GUI:
         colmain1 = [
             [PyGUI.MenuBar([["Profile",
                              [[
-                                 ["Import", ["Paste as string from clipboard", "Load from encoded file"]]],
+                                 ["Import", ["Paste as string from clipboard", "Load from encoded file", "Import from CombatFlite NS430 data"]]],
                                  "Export", ["Copy as string to clipboard", "Copy plain text to clipboard",
                                             "Save as encoded file"],
                               ]]])],
@@ -883,7 +907,7 @@ class GUI:
                     PyGUI.Popup("Profile not found")
 
             elif event == "Save as encoded file":
-                filename = PyGUI.PopupGetFile("Enter file name", "Exporting profile", default_extension=".json",
+                filename = PyGUI.PopupGetFile("Enter file name:", "Exporting profile", default_extension=".json",
                                               save_as=True, file_types=(("JSON File", "*.json"),))
 
                 if filename is None:
@@ -897,6 +921,23 @@ class GUI:
                 pyperclip.copy(profile_string)
                 PyGUI.Popup("Profile copied as plain text to clipboard")
 
+            elif event == "Import from CombatFlite NS430 data":
+                filename = PyGUI.PopupGetFile(
+                    "Enter file name", "Importing profile")
+
+                if filename is None:
+                    continue
+
+                self.profile = Profile.from_NS430(filename)
+                outfile = self.profile.name
+
+                with open(outfile, "r") as f:
+                    self.profile = Profile.from_string(f.read())
+                self.update_waypoints_list()
+
+                if self.profile.profilename:
+                    self.update_profiles_list(self.profile.profilename)
+                
             elif event == "Load from encoded file":
                 filename = PyGUI.PopupGetFile(
                     "Enter file name", "Importing profile")
